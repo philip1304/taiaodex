@@ -76,15 +76,18 @@ class SpeciesCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Image placeholder for now (we’ll swap to real images next)
-              Container(
-                height: 90,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.black12,
-                ),
-                child: const Center(
-                  child: Icon(Icons.image, size: 32),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  species.image,
+                  height: 90,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) => Container(
+                    height: 90,
+                    color: Colors.black12,
+                    child: const Center(child: Icon(Icons.broken_image, size: 32)),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
