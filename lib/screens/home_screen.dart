@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:diacritic/diacritic.dart';
-
 
 import '../data/sample_species.dart';
 import '../models/species.dart';
+
+String normalizeForSearch(String input) {
+  final s = input.toLowerCase();
+  return s
+      .replaceAll('ā', 'a')
+      .replaceAll('ē', 'e')
+      .replaceAll('ī', 'i')
+      .replaceAll('ō', 'o')
+      .replaceAll('ū', 'u')
+      .replaceAll('â', 'a')
+      .replaceAll('ê', 'e')
+      .replaceAll('î', 'i')
+      .replaceAll('ô', 'o')
+      .replaceAll('û', 'u');
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,16 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final Set<String> _selectedStatuses = {};
 
   List<Species> get _filteredSpecies {
-    final q = _query.trim().toLowerCase();
-
     bool matchesQuery(Species s) {
-      if (q.isEmpty) return true;
+      if (_query.trim().isEmpty) return true;
 
-      final english = removeDiacritics(s.name).toLowerCase();
-      final maori = removeDiacritics(s.maoriName).toLowerCase();
-      final query = removeDiacritics(q).toLowerCase();
+      final q = normalizeForSearch(_query.trim());
+      final english = normalizeForSearch(s.name);
+      final maori = normalizeForSearch(s.maoriName);
 
-      return english.contains(query) || maori.contains(query);
+      return english.contains(q) || maori.contains(q);
     }
 
     bool matchesStatus(Species s) {
@@ -84,55 +95,45 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Column(
               children: [
-                // Search bar
-                TextField(
-                  onChanged: (value) => setState(() => _query = value),
-                  decoration: InputDecoration(
-                    hintText: 'Search (English or Māori)…',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _query.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: _clearSearch,
-                            icon: const Icon(Icons.clear),
-                          ),
-                    filled: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
+                
                 // Filter chips row (horizontal scroll)
                 Row(
                   children: [
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final status in _statusOptions)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterChip(
-                                  label: Text(status),
-                                  selected:
-                                      _selectedStatuses.contains(status),
-                                  onSelected: (_) => _toggleStatus(status),
+                      child: TextField(
+                        onChanged: (value) => setState(() => _query = value),
+                        decoration: InputDecoration(
+                          hintText: 'Search (English or Māori)…',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _query.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () => setState(() => _query = ''),
+                                  icon: const Icon(Icons.clear),
                                 ),
-                              ),
-                          ],
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
-                    if (_selectedStatuses.isNotEmpty)
-                      TextButton(
-                        onPressed: _clearFilters,
-                        child: const Text('Clear'),
-                      ),
+                    const SizedBox(width: 10),
+                    IconButton.filledTonal(
+                      onPressed: _openFilters,
+                      icon: const Icon(Icons.filter_list),
+                      tooltip: 'Filters',
+                    ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _filtersLabel(),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
               ],
             ),
@@ -156,6 +157,68 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SpeciesGrid(species: filtered),
               ),
       ),
+    );
+  }
+
+  String _filtersLabel() {
+    if (_selectedStatuses.isEmpty) return 'No filters';
+    if (_selectedStatuses.length == 1) return 'Filter: ${_selectedStatuses.first}';
+    return 'Filters: ${_selectedStatuses.length} selected';
+  }
+
+  void _openFilters() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: false,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Filter by conservation status',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _selectedStatuses.clear());
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Clear'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final status in _statusOptions)
+                    FilterChip(
+                      label: Text(status),
+                      selected: _selectedStatuses.contains(status),
+                      onSelected: (_) => _toggleStatus(status),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
