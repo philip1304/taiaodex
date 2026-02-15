@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# macOS
+.DS_Store
+
+# Flutter local settings
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+
+# Android local
+android/local.properties
